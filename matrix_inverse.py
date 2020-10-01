@@ -1,16 +1,19 @@
 import unittest
+from fractions import Fraction
+
+import matrix
 
 
 def swap_row(a, row_1, row_2):
     pass
 
 
-def scalar_multipy(a, row):
-    pass
+def scalar_multiply(a, multiple, working_row):
+    return [[a[row][col] * multiple if working_row == row else a[row][col] for col in range(len(a[0]))] for row in range(len(a))]
 
 
-def add_row(a, multiple, row_1, row_2):
-    pass
+def add_row(a, multiple, original_row, working_row):
+    return [[a[row][col] + (multiple * a[original_row][col]) if working_row == row else a[row][col] for col in range(len(a[0]))] for row in range(len(a))]
 
 
 def eye(m):
@@ -18,7 +21,8 @@ def eye(m):
 
 
 def get_dims(a):
-    return (len(a), len(a[0]))
+    return len(a), len(a[0])
+
 
 def partition(a, b):
     a_dims = get_dims(a)
@@ -35,8 +39,37 @@ def partition(a, b):
     else:
         raise Exception("The number of rows in matrix A and matrix B do not match!")
 
-def to_ref(a, b=None):
-    pass
+
+def validate_square_matrix(a, b=None):
+    a_dims = get_dims(a)
+    a_nrows = a_dims[0]
+    a_ncols = a_dims[1]
+
+    if b is not None:
+        b_dims = get_dims(b)
+        b_nrows = b_dims[0]
+        b_ncols = b_dims[1]
+
+    if b is not None and a_nrows == a_ncols and b_nrows == b_ncols:
+        return to_ref(a, a_nrows, b)
+
+    elif b is None and a_nrows == a_ncols:
+        return to_ref(a, a_nrows)
+
+    else:
+        raise Exception("Please ensure matrix passed into function is a square matrix.")
+
+
+def to_ref(a, m, b=None):  # O(n^2)?
+    a = scalar_multiply(a, 1 / a[0][0], 0)
+
+    for row in range(1, len(a)):  # add loop above for looping through cols in matrix
+        if a[row][0] == 0 or a[row][0] == Fraction(0):
+            continue
+        else:
+            a = add_row(a, 0 - a[row][0], 0, row)
+
+    return a
 
 
 class TestMatrixOps(unittest.TestCase):
@@ -72,4 +105,21 @@ if __name__ == "__main__":
     E = [[1, 2, 1, 0],
          [3, 4, 0, 1]]
 
-    unittest.main()
+    F = [[3, 0, 6, 4],
+         [0, 1, 3, 2],
+         [1, 3, 3, 0],
+         [0, 1, 1, 0]]
+
+    G = [[2, -4, 0, 6, 12],
+         [12, 7, -7, 0, 0],
+         [0, -5, 6, -8, 5],
+         [3, 9, 1, 1, -7],
+         [0, 0, -6, 4, 2]]
+
+    F = matrix.to_frac(F)
+    G = matrix.to_frac(G)
+
+    # unittest.main()
+
+    print(matrix.from_frac(validate_square_matrix(F)))
+    print(matrix.from_frac(validate_square_matrix(G)))
