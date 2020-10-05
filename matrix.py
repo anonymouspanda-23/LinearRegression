@@ -52,13 +52,18 @@ def inverse(a, b=None):
         b_ncols = 0
 
     if b is not None and a_nrows == a_ncols and b_nrows == b_ncols and a_nrows == b_nrows and a_ncols == b_ncols:
-        return to_row_reduced_echelon_format(a, b)
+        a, b = to_row_reduced_echelon_format(a, b)
 
     elif b is None and a_nrows == a_ncols:
-        return to_row_reduced_echelon_format(a)
+        a, b = to_row_reduced_echelon_format(a)
 
     else:
         raise Exception("Please ensure matrix passed into function is a square matrix.")
+
+    if b is not None:
+        return b
+    else:
+        return a
 
 
 def reduce_pivot_row(a, pivot_row_number, b):
@@ -125,11 +130,7 @@ def to_row_reduced_echelon_format(a, b=None):
         for other_row_num in range(pivot_row_num - 1, -1, -1):
             a, b = reduce_non_pivot_rows(a, pivot_row_num, other_row_num, b)
 
-    if b is not None:
-        return b
-
-    else:
-        return a
+    return a, b
 
 
 def to_frac(a):
