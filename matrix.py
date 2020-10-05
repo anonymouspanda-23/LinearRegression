@@ -1,6 +1,4 @@
-from decimal import Decimal
 from fractions import Fraction
-from matrix_inverse import eye, validate_square_matrix
 
 
 def matmul(a, b):
@@ -14,45 +12,124 @@ def matmul(a, b):
     
 
 def transpose(a):
-    # return [[a[j][i] for j in range(len(a))] for i in range(len(a[0]))]
     return list(map(list, zip(*a)))
 
 
-def eliminate(r1, r2, col, target=0):
-    fac = (r2[col]-target) / r1[col]
-    for i in range(len(r2)):
-        r2[i] -= fac * r1[i]
+def swap_row(a, row_1, row_2):
+    temp_matrix = a
+    temp_matrix[row_1], temp_matrix[row_2] = temp_matrix[row_2], temp_matrix[row_1]
+    return temp_matrix
 
-def gauss(a):
-    for i in range(len(a)):
-        if a[i][i] == 0:
-            for j in range(1, len(a)):
-                if a[i][j] != Fraction(0):
-                    a[i], a[j] = a[j], a[i]
-                    break
+
+def scalar_multiply(a, multiple, working_row):
+    return [[a[row][col] * multiple if working_row == row else a[row][col] for col in range(len(a[0]))] for row in range(len(a))]
+
+
+def add_row(a, multiple, original_row, working_row):
+    return [[a[row][col] + (multiple * a[original_row][col]) if working_row == row else a[row][col] for col in range(len(a[0]))] for row in range(len(a))]
+
+
+def eye(m):
+    return [[1 if col == row else 0 for row in range(m)] for col in range(m)]
+
+
+def get_dims(a):
+    return len(a), len(a[0])
+
+
+def inverse(a, b=None):
+    a_dims = get_dims(a)
+    a_nrows = a_dims[0]
+    a_ncols = a_dims[1]
+
+    if b is not None:
+        b_dims = get_dims(b)
+        b_nrows = b_dims[0]
+        b_ncols = b_dims[1]
+
+    else:
+        b_nrows = 0
+        b_ncols = 0
+
+    if b is not None and a_nrows == a_ncols and b_nrows == b_ncols and a_nrows == b_nrows and a_ncols == b_ncols:
+        return to_row_reduced_echelon_format(a, b)
+
+    elif b is None and a_nrows == a_ncols:
+        return to_row_reduced_echelon_format(a)
+
+    else:
+        raise Exception("Please ensure matrix passed into function is a square matrix.")
+
+
+def reduce_pivot_row(a, pivot_row_number, b):
+    pivot_row = a[pivot_row_number]
+    value_type = type(pivot_row[pivot_row_number])
+
+    if pivot_row[pivot_row_number] not in [value_type(0), value_type(1)]:
+        multiplier = 1 / pivot_row[pivot_row_number]
+        a = scalar_multiply(a, multiplier, pivot_row_number)
+        if b is not None:
+            b = scalar_multiply(b, multiplier, pivot_row_number)
+
+    return a, b
+
+
+def reduce_non_pivot_rows(a, pivot_row_num, non_pivot_row_num, b):
+    non_pivot_row = a[non_pivot_row_num]
+    value_type = type(non_pivot_row[pivot_row_num])
+
+    if non_pivot_row[pivot_row_num] != value_type(0):
+        multiplier = value_type(0) - non_pivot_row[pivot_row_num]
+        a = add_row(a, multiplier, pivot_row_num, non_pivot_row_num)
+        if b is not None:
+            b = add_row(b, multiplier, pivot_row_num, non_pivot_row_num)
+
+    return a, b
+
+
+def validate_pivot_row(a, pivot_row_num, b):
+    pivot_row = a[pivot_row_num]
+    value_type = type(pivot_row[pivot_row_num])
+
+    if pivot_row[pivot_row_num] == value_type(0):
+        for non_pivot_row_num in range(pivot_row_num + 1, len(a)):
+            non_pivot_row = a[non_pivot_row_num]
+
+            if non_pivot_row[pivot_row_num] != value_type(0):
+                a = swap_row(a, pivot_row_num, non_pivot_row_num)
+                if b is not None:
+                    b = swap_row(b, pivot_row_num, non_pivot_row_num)
+                break
+
             else:
-                print("MATRIX NOT INVERTIBLE")
-                return Fraction(-1)
-        for j in range(i+1, len(a)):
-            eliminate(a[i], a[j], i)
-    for i in range(len(a)-1, -1, -1):
-        for j in range(i-1, -1, -1):
-            eliminate(a[i], a[j], i)
-    for i in range(len(a)):
-        eliminate(a[i], a[i], i, target=1)
-    return a
+                continue
+
+    return a, b
 
 
-def inverse(a):
-    tmp = [[] for _ in a]
-    for i, row in enumerate(a):
-        assert len(row) == len(a)
-        tmp[i].extend(row + [0]*i + [1] + [0]*(len(a)-i-1))
-    gauss(tmp)
-    ret = []
-    for i in range(len(tmp)):
-        ret.append(tmp[i][len(tmp[i])//2:])
-    return ret
+def to_row_echelon_format(a, b=None):  # O(n^2)?
+    for piv_row_num in range(len(a)):
+        a, b = validate_pivot_row(a, piv_row_num, b)
+        a, b = reduce_pivot_row(a, piv_row_num, b)
+
+        for other_row_num in range(piv_row_num + 1, len(a)):
+            a, b = reduce_non_pivot_rows(a, piv_row_num, other_row_num, b)
+
+    return a, b
+
+
+def to_row_reduced_echelon_format(a, b=None):
+    a, b = to_row_echelon_format(a, b)
+
+    for pivot_row_num in range(len(a) - 1, -1, -1):
+        for other_row_num in range(pivot_row_num - 1, -1, -1):
+            a, b = reduce_non_pivot_rows(a, pivot_row_num, other_row_num, b)
+
+    if b is not None:
+        return b
+
+    else:
+        return a
 
 
 def to_frac(a):
@@ -79,7 +156,7 @@ if __name__ == '__main__':
     y = to_frac(y)
 
     x_transpose = transpose(x)
-    ans = matmul(matmul(validate_square_matrix(matmul(x_transpose, x), eye(len(matmul(x_transpose, x)))), x_transpose), y)
+    ans = matmul(matmul(inverse(matmul(x_transpose, x), eye(len(matmul(x_transpose, x)))), x_transpose), y)
 
     theta = from_frac(ans)
 
