@@ -1,5 +1,6 @@
 from decimal import Decimal
 from fractions import Fraction
+from matrix_inverse import eye, validate_square_matrix
 
 
 def matmul(a, b):
@@ -9,11 +10,8 @@ def matmul(a, b):
     if a_ncols != b_nrows:
         raise Exception("The number of columns in A is not equal to the number of rows in B! Is your matrix 2 dimensional?")
     
-    zip_b = zip(*b)
-    zip_b = list(zip_b)
-    return [[sum(ele_a*ele_b for ele_a, ele_b in zip(row_a, col_b)) 
-             for col_b in zip_b] for row_a in a]
-
+    return [[sum([a[i][m]*b[m][j] for m in range(len(a[0]))]) for j in range(len(b[0]))] for i in range(len(a))]
+    
 
 def transpose(a):
     # return [[a[j][i] for j in range(len(a))] for i in range(len(a[0]))]
@@ -81,7 +79,7 @@ if __name__ == '__main__':
     y = to_frac(y)
 
     x_transpose = transpose(x)
-    ans = matmul(matmul(inverse(matmul(x_transpose, x)), x_transpose), y)
+    ans = matmul(matmul(validate_square_matrix(matmul(x_transpose, x), eye(len(matmul(x_transpose, x)))), x_transpose), y)
 
     theta = from_frac(ans)
 
